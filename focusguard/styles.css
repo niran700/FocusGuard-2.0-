@@ -1,0 +1,74 @@
+:root{
+  --bg-start:#071022;
+  --bg-end:#211033;
+  --card-bg:rgba(255,255,255,0.03);
+  --muted:#9aa4b2;
+  --accent:#7c5cff;
+  --accent-2:#4cc2ff;
+  --text:#e6eef8;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: linear-gradient(135deg,var(--bg-start),var(--bg-end));
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  min-height:100vh;
+}
+
+.bg-shapes{
+  position:fixed;inset:-20% -10% auto -10%;pointer-events:none;
+  background:
+    radial-gradient(800px 400px at 10% 20%, rgba(76,194,255,0.08) 0%, transparent 25%),
+    radial-gradient(700px 350px at 90% 80%, rgba(124,92,255,0.09) 0%, transparent 30%);
+  filter: blur(70px) saturate(120%);
+}
+
+.page-container{
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px
+}
+
+.card{
+  width:100%;max-width:420px;background:var(--card-bg);border-radius:14px;padding:26px;box-shadow:0 12px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.04);
+}
+
+.brand{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.brand-logo{width:56px;height:56px;display:block}
+h1{margin:0;font-size:20px}
+.subtitle{margin:0;color:var(--muted);font-size:13px}
+
+.login-form{margin-top:12px}
+.field{display:block;margin-top:12px}
+.label-text{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+input{width:100%;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);color:inherit;font-size:16px}
+input::placeholder{color:rgba(230,238,248,0.45)}
+input:focus{outline:none;border-color:rgba(124,92,255,0.9);box-shadow:0 8px 24px rgba(124,92,255,0.06)}
+
+.form-row.actions{display:flex;align-items:center;justify-content:space-between;margin-top:18px;gap:12px}
+.forgot{font-size:14px;color:var(--muted);text-decoration:none}
+.btn{padding:12px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:16px}
+.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#081226;box-shadow:0 8px 24px rgba(76,194,255,0.12)}
+
+.signup{text-align:center;margin-top:18px;color:var(--muted);font-size:14px}
+
+/* Responsive adjustments for small screens (phones) */
+@media (max-width:480px){
+  .card{padding:18px;border-radius:12px}
+  .brand-logo{width:48px;height:48px}
+  h1{font-size:18px}
+  input{font-size:15px;padding:14px}
+  .btn{width:44%;padding:12px}
+  .forgot{font-size:13px}
+  .form-row.actions{gap:10px}
+}
+
+/* Very small devices: make the button full width and stacked */
+@media (max-width:360px){
+  .form-row.actions{flex-direction:column-reverse;align-items:stretch}
+  .btn{width:100%}
+  .forgot{align-self:flex-start;margin-bottom:8px}
+}

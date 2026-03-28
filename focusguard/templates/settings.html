@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FocusGuard — Daily Goals</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    .goals-container { max-width:800px; margin:40px auto; }
+    .goals-input { display:flex; flex-direction:column; gap:12px; margin-bottom:24px; }
+    .goals-input input { padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); }
+    .goals-input textarea { padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); resize:vertical; min-height:60px; }
+    .goals-input button { padding:12px 16px; border-radius:8px; border:none; background:var(--accent); color:#081226; font-weight:600; cursor:pointer; }
+    .goals-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; margin-bottom:24px; }
+    .goal-card { background:var(--card-bg); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; }
+    .goal-card.completed { opacity:0.7; }
+    .goal-card.completed .goal-text { text-decoration:line-through; }
+    .goal-header { display:flex; align-items:center; gap:8px; }
+    .goal-checkbox { width:16px; height:16px; cursor:pointer; }
+    .goal-text { font-weight:600; margin:0; }
+    .goal-desc { font-size:13px; color:var(--muted); margin:0; }
+    .reset-btn { padding:10px 16px; background:#ff4444; color:#fff; border:none; border-radius:8px; cursor:pointer; margin-bottom:16px; }
+    .focus-link-btn {
+      display: inline-block;
+      margin-bottom: 16px;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #081226;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      text-align: center;
+    }
+    @media (max-width:480px) { .goals-container{margin:20px 16px;} .goals-grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <div class="bg-shapes" aria-hidden="true"></div>
+  <main class="page-container">
+    <div class="card goals-container">
+      <h1>📝 Daily Goals</h1>
+      <div class="goals-input">
+        <input id="newGoalText" type="text" placeholder="Enter goal title">
+        <textarea id="newGoalDesc" placeholder="Optional description"></textarea>
+        <button id="addGoal">Add Goal</button>
+      </div>
+      <a href="/focus" class="focus-link-btn">Start Focus Techniques</a>
+      <button id="resetGoals" class="reset-btn">Reset All Goals</button>
+      <div class="goals-grid" id="goalsGrid"></div>
+      <p style="margin-top:30px"><a href="/dashboard" style="color:#7c5cff;text-decoration:underline">Back to Dashboard</a></p>
+    </div>
+  </main>
+
+  <script>
+    const textInput = document.getElementById('newGoalText');
+    const descInput = document.getElementById('newGoalDesc');
+    const addBtn = document.getElementById('addGoal');
+    const resetBtn = document.getElementById('resetGoals');
+    const gridEl = document.getElementById('goalsGrid');
+
+    async function loadGoals() {
+      const res = await fetch('/get_goals');
+      return await res.json();
+    }
+
+    async function renderGoals() {
+      const goals = await loadGoals();
+      gridEl.innerHTML = '';
+      goals.forEach((g, idx) => {
+        const card = document.createElement('div');
+        card.className = 'goal-card' + (g.done ? ' completed' : '');
+        card.innerHTML = `
+          <div class="goal-header">
+            <input type="checkbox" class="goal-checkbox" ${g.done ? 'checked' : ''} data-index="${idx}">
+            <h4 class="goal-text">${g.text}</h4>
+          </div>
+          ${g.desc ? `<p class="goal-desc">${g.desc}</p>` : ''}
+        `;
+        card.querySelector('.goal-checkbox').addEventListener('change', async (e) => {
+          const res = await fetch('/update_goal', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`index=${idx}&done=${e.target.checked}`});
+          const data = await res.json();
+          if (data.reset) {
+            alert('🎉 All goals completed! Goals have been reset for a fresh start.');
+          }
+          renderGoals();
+        });
+        gridEl.appendChild(card);
+      });
+    }
+
+    addBtn.addEventListener('click', async () => {
+      const text = textInput.value.trim();
+      const desc = descInput.value.trim();
+      if (!text) return;
+      const res = await fetch('/add_goal', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`text=${encodeURIComponent(text)}&desc=${encodeURIComponent(desc)}`});
+      if (res.ok) {
+        textInput.value = '';
+        descInput.value = '';
+        renderGoals();
+      }
+    });
+
+    resetBtn.addEventListener('click', async () => {
+      if (confirm('Reset all goals?')) {
+        await fetch('/reset_goals', {method:'POST'});
+        renderGoals();
+      }
+    });
+
+    textInput.addEventListener('keyup', e => {
+      if (e.key === 'Enter') addBtn.click();
+    });
+
+    renderGoals();
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "test@example.com": {
+    "focus_time": 420,
+    "distraction_time": 12,
+    "completed_sessions": 12,
+    "incomplete_sessions": 2
+  },
+  "niranjansachin40@gmail.com": {
+    "focus_time": 41,
+    "distraction_time": 2,
+    "completed_sessions": 2,
+    "incomplete_sessions": 1,
+    "exit_attempts": 1
+  }
+}

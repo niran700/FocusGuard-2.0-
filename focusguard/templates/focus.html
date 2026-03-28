@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FocusGuard — Focus Mode</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    .focus-container {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    .focus-header {
+      text-align: center;
+      margin-bottom: 24px;
+      width: 100%;
+    }
+
+    .focus-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+    }
+
+    .focus-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .flashcards-container {
+      display: flex;
+      overflow-x: auto;
+      gap: 16px;
+      padding: 16px 0;
+      scroll-behavior: smooth;
+      margin: 0 auto 24px auto;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .flashcards-container::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .flashcards-container::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+    }
+
+    .flashcards-container::-webkit-scrollbar-thumb {
+      background: rgba(124,92,255,0.5);
+      border-radius: 10px;
+    }
+
+    .card-option {
+      flex: 0 0 280px;
+      background: var(--card-bg);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-option:hover {
+      transform: translateY(-6px);
+      border-color: rgba(124,92,255,0.5);
+      box-shadow: 0 12px 32px rgba(124,92,255,0.15);
+    }
+
+    .card-option.pomodoro { border-left: 4px solid #ff6b6b; }
+    .card-option.fiftytwo { border-left: 4px solid #4cc2ff; }
+    .card-option.ninety { border-left: 4px solid #ffd93d; }
+
+    .card-icon {
+      font-size: 36px;
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .card-times {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--muted);
+      padding: 8px 0;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .card-times span {
+      flex: 1;
+    }
+
+    .card-times strong {
+      color: var(--accent);
+      display: block;
+      font-size: 14px;
+      margin-top: 2px;
+    }
+
+    .card-description {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .card-purpose {
+      font-size: 12px;
+      color: #7c5cff;
+      font-weight: 600;
+      margin: 0;
+      padding-top: 8px;
+      border-top: 1px solid rgba(124,92,255,0.2);
+    }
+
+    .timer-display {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
+    .session-info {
+      margin-bottom: 16px;
+    }
+
+    #passwordModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #passwordModal .modal-content {
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 12px;
+      max-width: 320px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 24px;
+      width: 100%;
+    }
+
+    #chooseCard {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    @media (max-width:768px) {
+      .card-option { flex: 0 0 240px; }
+    }
+
+    @media (max-width:480px) {
+      .card-option { flex: 0 0 220px; padding: 12px; }
+      .card-title { font-size: 16px; }
+      .card-icon { font-size: 32px; }
+      .card-times { flex-direction: column; gap: 8px; }
+      .focus-header h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-shapes" aria-hidden="true"></div>
+  <main class="page-container">
+    <div class="focus-container">
+      <div class="card" id="chooseCard">
+        <div class="focus-header">
+          <h1>🎯 Focus Techniques</h1>
+          <p>Choose a focus technique to get started</p>
+        </div>
+
+        <div class="flashcards-container">
+          <!-- Pomodoro Card -->
+          <div class="card-option pomodoro" data-work="25" data-break="5">
+            <div class="card-icon">🍎</div>
+            <h3 class="card-title">Pomodoro Technique</h3>
+            <div class="card-times">
+              <span>Focus: <strong>25 min</strong></span>
+              <span>Break: <strong>5 min</strong></span>
+            </div>
+            <p class="card-description">Work with full concentration for 25 minutes and then take a 5-minute break. After completing 4 cycles, take a longer break of 15–20 minutes.</p>
+            <p class="card-purpose">✓ Helps maintain focus and prevents mental fatigue.</p>
+          </div>
+
+          <!-- 52/17 Card -->
+          <div class="card-option fiftytwo" data-work="52" data-break="17">
+            <div class="card-icon">📚</div>
+            <h3 class="card-title">52/17 Rule</h3>
+            <div class="card-times">
+              <span>Focus: <strong>52 min</strong></span>
+              <span>Break: <strong>17 min</strong></span>
+            </div>
+            <p class="card-description">Focus deeply on work for 52 minutes followed by a 17-minute break. This cycle balances productivity and rest.</p>
+            <p class="card-purpose">✓ Maintains high productivity and reduces burnout.</p>
+          </div>
+
+          <!-- 90 Minute Card -->
+          <div class="card-option ninety" data-work="90" data-break="20,30">
+            <div class="card-icon">⚡</div>
+            <h3 class="card-title">90-Minute Deep Work</h3>
+            <div class="card-times">
+              <span>Focus: <strong>90 min</strong></span>
+              <span>Break: <strong>20-30 min</strong></span>
+            </div>
+            <p class="card-description">Work without distractions for 90 minutes and then take a longer restorative break.</p>
+            <p class="card-purpose">✓ Encourages deep work and maximum cognitive performance.</p>
+          </div>
+
+          <!-- End of Flashcards -->
+        </div>
+      </div>
+
+      <!-- Session Card -->
+      <div class="card" id="sessionCard" style="display:none;max-width:420px;margin:0 auto;">
+        <h1 id="techniqueTitle"></h1>
+        <div class="session-info">
+          <span id="cycleType">Work</span> &bull; 
+          <span id="remaining"></span> sessions remaining
+        </div>
+        <div class="timer-display" id="timer">00:00</div>
+        <div id="goalsSection" style="margin-top:16px;">
+          <h3 style="margin-bottom:8px;">Today's Goals</h3>
+          <div id="goalsList"></div>
+        </div>
+        <button id="exitBtn" class="btn primary">Exit Session</button>
+      </div>
+
+      <div class="back-link">
+        <a href="/dashboard" style="color:#7c5cff;text-decoration:underline" id="backLink">Back to Dashboard</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- password modal -->
+  <div id="passwordModal">
+    <div class="modal-content">
+      <h2>Enter password</h2>
+      <input type="password" id="exitPassword" placeholder="Password" style="width:100%;padding:10px;margin:12px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.2);">
+      <button id="submitPwdBtn" class="btn primary">Submit</button>
+      <p id="pwdError" style="color:#ff6666;margin-top:8px"></p>
+    </div>
+  </div>
+
+  <script>
+    // basic state
+    let technique = null;
+    let sessions = 0;
+    let remaining = 0;
+    let cycle = 'work'; // work or break
+    let timerInterval = null;
+    let minutes = 0;
+    let seconds = 0;
+    let breakOptions = [];
+    let sessionStartTime = null;
+    let exitAttempts = 0;
+    let totalPlannedMinutes = 0;
+    let isBlockMode = false;
+    let sessionEnding = false;
+
+    const chooseCard = document.getElementById('chooseCard');
+    const sessionCard = document.getElementById('sessionCard');
+    const techniqueTitle = document.getElementById('techniqueTitle');
+    const cycleTypeEl = document.getElementById('cycleType');
+    const remainingEl = document.getElementById('remaining');
+    const timerEl = document.getElementById('timer');
+    const exitBtn = document.getElementById('exitBtn');
+    const pwdModal = document.getElementById('passwordModal');
+    const submitPwdBtn = document.getElementById('submitPwdBtn');
+    const pwdError = document.getElementById('pwdError');
+
+    // Check if in block mode
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'block') {
+      isBlockMode = true;
+      const focusHeader = document.querySelector('.focus-header');
+      const headerP = focusHeader.querySelector('p');
+      focusHeader.querySelector('h1').textContent = '🚫 Block Mode + Focus Techniques';
+      headerP.textContent = 'Select a focus technique to activate blocking';
+      
+      // Update back link
+      const backLink = document.getElementById('backLink');
+      backLink.textContent = 'Back to Blocked Apps';
+      backLink.href = '/blocked';
+    }
+
+    // when a flashcard is clicked
+    document.querySelectorAll('.card-option').forEach(card => {
+      card.addEventListener('click', () => {
+        const w = parseInt(card.getAttribute('data-work'));
+        const b = card.getAttribute('data-break').split(',').map(x=>parseInt(x));
+        // Skip Focus Mode card (data-work=0)
+        if (w === 0) return;
+        startSetup(w, b);
+      });
+    });
+
+    function startSetup(w, bOptions) {
+      technique = `${w}/${bOptions.length>1? bOptions.join('/') : bOptions[0]}`;
+      breakOptions = bOptions;
+      let cnt = prompt('How many sessions do you want to run?', '1');
+      if (!cnt) return;
+      cnt = parseInt(cnt);
+      if (isNaN(cnt) || cnt < 1) return alert('Invalid number');
+      sessions = cnt;
+      remaining = cnt;
+      totalPlannedMinutes = w * cnt;
+      sessionStartTime = new Date();
+      exitAttempts = 0;
+      chooseCard.style.display = 'none';
+      sessionCard.style.display = 'block';
+      techniqueTitle.textContent = technique;
+      remainingEl.textContent = remaining;
+      cycle = 'work';
+      minutes = w;
+      seconds = 0;
+      updateTimerDisplay();
+      startTimer();
+      
+      // Start blocking if in block mode
+      if (isBlockMode) {
+        const blockDuration = w * cnt + 30; // Add extra time for breaks
+        fetch('/start_blocking', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`duration=${blockDuration}`});
+        console.log(`Block mode activated with ${blockDuration} minutes duration`);
+      } else {
+        fetch('/start_blocking', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'duration=1440'});
+      }
+      
+      loadGoalsForSession();
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        if (seconds === 0) {
+          if (minutes === 0) {
+            // period end
+            if (cycle === 'work') {
+              // begin break
+              cycle = 'break';
+              cycleTypeEl.textContent = 'Break';
+              if (breakOptions.length > 1) {
+                let choice = prompt('Enter break length (20 or 30):', breakOptions[0]);
+                choice = parseInt(choice);
+                if (!breakOptions.includes(choice)) choice = breakOptions[0];
+                minutes = choice;
+              } else {
+                minutes = breakOptions[0];
+              }
+              seconds = 0;
+            } else {
+              // break finished
+              remaining -= 1;
+              remainingEl.textContent = remaining;
+              if (remaining <= 0) {
+                finishSession(true, 'All sessions completed!');
+                return;
+              }
+              // start next work
+              cycle = 'work';
+              cycleTypeEl.textContent = 'Work';
+              minutes = parseInt(technique.split('/')[0]);
+              seconds = 0;
+            }
+            return;
+          }
+          minutes -= 1;
+          seconds = 59;
+        } else {
+          seconds -= 1;
+        }
+        updateTimerDisplay();
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      let m = minutes.toString().padStart(2,'0');
+      let s = seconds.toString().padStart(2,'0');
+      timerEl.textContent = `${m}:${s}`;
+    }
+
+    function getSessionDuration() {
+      const now = new Date();
+      return Math.floor((now - sessionStartTime) / 60000);
+    }
+
+    function finishSession(completed, message) {
+      if (sessionEnding) return;
+      sessionEnding = true;
+      clearInterval(timerInterval);
+      cycleTypeEl.textContent = completed ? 'Done' : 'Paused';
+      timerEl.textContent = '00:00';
+      fetch('/stop_blocking', {method:'POST'});
+      if (message) {
+        alert(message);
+      }
+      saveSessionStats(completed);
+    }
+
+    function saveSessionStats(completed) {
+      const duration = getSessionDuration();
+      const payload = {
+        duration_minutes: duration,
+        completed: completed,
+        exit_attempts: exitAttempts
+      };
+      
+      fetch('/save_session_stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        if (completed) {
+          setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+        }
+      });
+    }
+
+    exitBtn.addEventListener('click', () => {
+      exitAttempts += 1;
+      const duration = getSessionDuration();
+      window.location.href = `/dashboard?confirm_exit=1&duration_minutes=${encodeURIComponent(duration)}&exit_attempts=${encodeURIComponent(exitAttempts)}`;
+    });
+
+    submitPwdBtn.addEventListener('click', () => {
+      const pwd = document.getElementById('exitPassword').value;
+      fetch('/verify_password', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: `password=${encodeURIComponent(pwd)}`
+      }).then(r=>r.json()).then(data => {
+        if (data.success) {
+          // stop timer and leave
+          clearInterval(timerInterval);
+          fetch('/stop_blocking', {method:'POST'});
+          // Save incomplete session
+          saveSessionStats(false);
+          setTimeout(() => { window.location.href = '/dashboard'; }, 500);
+        } else {
+          pwdError.textContent = data.error || 'Invalid password';
+        }
+      }).catch(err => {
+        pwdError.textContent = 'Error';
+      });
+    });
+
+    // close modal if click outside
+    pwdModal.addEventListener('click', e => {
+      if (e.target === pwdModal) pwdModal.style.display = 'none';
+    });
+
+    async function loadGoalsForSession() {
+      const res = await fetch('/get_goals');
+      const goals = await res.json();
+      const goalsList = document.getElementById('goalsList');
+      goalsList.innerHTML = '';
+      if (goals.length === 0) {
+        goalsList.innerHTML = '<p>No goals set for today.</p>';
+        return;
+      }
+      goals.forEach((g, idx) => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.gap = '8px';
+        div.style.marginBottom = '8px';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = g.done;
+        chk.addEventListener('change', async () => {
+          const res = await fetch('/update_goal', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`index=${idx}&done=${chk.checked}`});
+          const data = await res.json();
+          if (data.reset) {
+            finishSession(true, 'All tasks completed! Your focus session has ended automatically.');
+            return;
+          }
+          checkAllGoalsCompleted(data.goals);
+          loadGoalsForSession();  // Reload to show updated
+        });
+        const span = document.createElement('span');
+        span.textContent = g.text;
+        if (g.done) span.style.textDecoration = 'line-through';
+        div.appendChild(chk);
+        div.appendChild(span);
+        goalsList.appendChild(div);
+      });
+    }
+
+    async function checkAllGoalsCompleted(goals) {
+      const updatedRes = await fetch('/get_goals');
+      const updatedGoals = await updatedRes.json();
+      const allDone = updatedGoals.length > 0 && updatedGoals.every(g => g.done);
+      if (allDone) {
+        alert('🎉 Congratulations! You completed all your goals for today. Great focus and productivity!');
+      }
+    }
+  </script>
+</body>
+</html>

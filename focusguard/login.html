@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FocusGuard — Login</title>
+  <link rel="stylesheet" href="styles.css">
+  <meta name="description" content="FocusGuard — Distraction Blocker login">
+</head>
+<body>
+  <div class="bg-shapes" aria-hidden="true"></div>
+  <main class="page-container">
+    <section class="card" role="region" aria-labelledby="site-title">
+      <div class="brand">
+        <div>
+          <h1 id="site-title">FocusGuard</h1>
+          <p class="subtitle">Distraction Blocker</p>
+        </div>
+      </div>
+
+      {% if error %}
+      <div style="background:#ff4444;color:#fff;padding:10px;border-radius:8px;margin-bottom:12px;font-size:14px;">{{ error }}</div>
+      {% endif %}
+
+      <form class="login-form" action="/login" method="post" novalidate>
+        <label class="field">
+          <span class="label-text">Email or Username</span>
+          <input type="text" name="user" placeholder="you@domain.com" required inputmode="email">
+        </label>
+
+        <label class="field">
+          <span class="label-text">Password</span>
+          <input type="password" name="password" placeholder="Enter password" required>
+        </label>
+
+        <div class="form-row actions">
+          <a class="forgot" href="#">Forgot Password?</a>
+          <button class="btn primary" type="submit">Login</button>
+        </div>
+      </form>
+
+      <p class="signup">Don't have an account? <a href="/signup">Sign Up</a></p>
+    </section>
+  </main>
+
+  <script>
+    // Small enhancement: submit on Enter from password field
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){
+        const active = document.activeElement;
+        if(active && (active.tagName === 'INPUT')){
+          // allow normal submit
+        }
+      }
+    });
+  </script>
+</body>
+</html>

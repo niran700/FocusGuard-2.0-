@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FocusGuard - Session History</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    .history-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    .history-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .history-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 30px;
+      color: var(--text);
+    }
+
+    .history-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .back-link a {
+      color: var(--accent);
+      text-decoration: underline;
+      font-size: 14px;
+    }
+
+    .history-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .history-table th,
+    .history-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .history-table th {
+      color: var(--text);
+      background: rgba(124, 92, 255, 0.12);
+      font-weight: 600;
+    }
+
+    .history-table td {
+      color: var(--muted);
+    }
+
+    .history-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .empty-state {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    @media (max-width: 700px) {
+      .history-table th,
+      .history-table td {
+        padding: 10px 8px;
+        font-size: 12px;
+      }
+
+      .history-header h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-shapes" aria-hidden="true"></div>
+  <main class="page-container">
+    <div class="history-container">
+      <div class="back-link">
+        <a href="/dashboard">← Back to Dashboard</a>
+      </div>
+
+      <div class="history-header">
+        <h1>📝 Session History</h1>
+        <p>Every completed focus session is stored with date and time.</p>
+      </div>
+
+      <div class="history-card">
+        {% if sessions and sessions|length > 0 %}
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Focus Duration</th>
+                <th>Exit Attempts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sessions %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td>{{ s.date }}</td>
+                  <td>{{ s.time }}</td>
+                  <td>{{ s.duration_minutes }} min</td>
+                  <td>{{ s.exit_attempts }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="empty-state">
+            No completed focus sessions yet. Complete a focus session and it will appear here.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</body>
+</html>

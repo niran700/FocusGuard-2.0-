@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FocusGuard — Statistics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <style>
+    .stats-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    .stats-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .stats-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 32px;
+      color: var(--text);
+    }
+
+    .stats-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .charts-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .chart-card h2 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .chart-statistic {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      width: 100%;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+    }
+
+    .stat-value {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .back-link a {
+      color: var(--accent);
+      text-decoration: underline;
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .stats-header h1 {
+        font-size: 24px;
+      }
+
+      .chart-container {
+        height: 250px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-container {
+        padding: 16px;
+      }
+
+      .stats-header h1 {
+        font-size: 20px;
+      }
+
+      .chart-card {
+        padding: 16px;
+      }
+
+      .chart-statistic {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-container {
+        height: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-shapes" aria-hidden="true"></div>
+  <main class="page-container">
+    <div class="stats-container">
+      <div class="back-link">
+        <a href="/dashboard">← Back to Dashboard</a>
+      </div>
+
+      <div class="stats-header">
+        <h1>📊 Your Performance</h1>
+        <p>Track your focus and discipline metrics</p>
+      </div>
+
+      <div class="charts-wrapper">
+        <div class="chart-card">
+          <h2>📈 Session Progress</h2>
+          <div class="chart-container">
+            <canvas id="sessionProgressChart"></canvas>
+          </div>
+          <div class="chart-statistic">
+            <div class="stat-item">
+              <span class="stat-label">Total Focus Time:</span>
+              <span class="stat-value" id="focusTimeStat">0 min</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Goals Completed:</span>
+              <span class="stat-value" id="goalsCompletedStat">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Blocked App Attempts:</span>
+              <span class="stat-value" id="exitAttemptsStat">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Session Discipline:</span>
+              <span class="stat-value" id="sessionDisciplineStat">0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const accentColor = '#7c5cff';
+    const successColor = '#4cc2ff';
+    const warningColor = '#ffd93d';
+    const dangerColor = '#ff6b6b';
+    const textColor = '#e6eef8';
+
+    let sessionProgressChart = null;
+
+    async function loadStats() {
+      try {
+        const statsResponse = await fetch('/api/stats');
+        if (!statsResponse.ok) {
+          throw new Error('Failed to fetch stats');
+        }
+
+        const statsData = await statsResponse.json();
+
+        // Load goals data
+        const goalsResponse = await fetch('/get_goals');
+        const goalsData = await goalsResponse.json();
+
+        renderCharts(statsData, goalsData);
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    function renderCharts(stats, goals) {
+      if (sessionProgressChart) sessionProgressChart.destroy();
+
+      const focusTime = stats.focus_time || 0;
+      const completedGoals = goals.filter(g => g.done).length;
+      const exitAttempts = stats.exit_attempts || 0;
+      const completedSessions = stats.completed_sessions || 0;
+      const incompleteSessions = stats.incomplete_sessions || 0;
+      const totalSessions = completedSessions + incompleteSessions;
+      const sessionDiscipline = totalSessions > 0
+        ? Math.round((completedSessions / totalSessions) * 100)
+        : 0;
+
+      document.getElementById('focusTimeStat').textContent = focusTime + ' min';
+      document.getElementById('goalsCompletedStat').textContent = completedGoals;
+      document.getElementById('exitAttemptsStat').textContent = exitAttempts;
+      document.getElementById('sessionDisciplineStat').textContent = sessionDiscipline + '%';
+
+      const ctx = document.getElementById('sessionProgressChart').getContext('2d');
+      sessionProgressChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Focus Time (min)', 'Goals Completed', 'Blocked App Attempts', 'Session Discipline (%)'],
+          datasets: [{
+            data: [focusTime, completedGoals, exitAttempts, sessionDiscipline],
+            backgroundColor: [accentColor, successColor, dangerColor, warningColor],
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: {
+              labels: {
+                color: textColor,
+                font: { size: 12 },
+                padding: 12
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label;
+                  const value = context.parsed;
+                  if (label.includes('Focus Time')) return label + ': ' + value + ' min';
+                  if (label.includes('Session Discipline')) return label + ': ' + value + '%';
+                  if (label.includes('Blocked App Attempts')) return label + ': ' + value + ' attempts';
+                  return label + ': ' + value;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadStats);
+  </script>
+</body>
+</html>

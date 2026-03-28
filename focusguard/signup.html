@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FocusGuard — Sign Up</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-shapes" aria-hidden="true"></div>
+  <main class="page-container">
+    <section class="card" role="region" aria-labelledby="signup-title">
+      <div class="brand">
+        <div>
+          <h1 id="signup-title">Create Account</h1>
+          <p class="subtitle">Join FocusGuard — Distraction Blocker</p>
+        </div>
+      </div>
+
+      {% if error %}
+      <div style="background:#ff4444;color:#fff;padding:10px;border-radius:8px;margin-bottom:12px;font-size:14px;">{{ error }}</div>
+      {% endif %}
+
+      <form class="login-form" action="/signup" method="post" novalidate>
+        <label class="field">
+          <span class="label-text">Full name</span>
+          <input type="text" name="fullname" placeholder="Your name" required>
+        </label>
+
+        <label class="field">
+          <span class="label-text">Email</span>
+          <input type="email" name="email" placeholder="you@domain.com" required inputmode="email">
+        </label>
+
+        <label class="field">
+          <span class="label-text">Password</span>
+          <input type="password" name="password" placeholder="Create a password" required>
+        </label>
+
+        <label class="field">
+          <span class="label-text">Confirm Password</span>
+          <input type="password" name="confirm" placeholder="Repeat password" required>
+        </label>
+
+        <div class="form-row actions">
+          <a class="forgot" href="/login">Back to Login</a>
+          <button class="btn primary" type="submit">Create account</button>
+        </div>
+      </form>
+
+      <p class="signup">By creating an account you agree to our <a href="#">Terms</a>.</p>
+    </section>
+  </main>
+</body>
+</html>

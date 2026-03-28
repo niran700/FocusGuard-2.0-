@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FocusGuard — Blocked Apps & Websites</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+    .blocked-container { max-width:500px; margin:40px auto; }
+    .blocked-input { display:flex; gap:8px; margin-bottom:16px; }
+    .blocked-input input { flex:1; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); }
+    .blocked-input button { padding:10px 16px; border-radius:8px; border:none; background:var(--accent); color:#081226; font-weight:600; cursor:pointer; }
+    .blocked-list { list-style:none; padding:0; margin-bottom:16px; }
+    .blocked-list li { display:flex; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.1); }
+    .blocked-list li button { margin-left:auto; background:#ff4444; color:#fff; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; }
+    .activate-btn { width:100%; padding:12px; background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#081226; border:none; border-radius:8px; font-weight:600; cursor:pointer; margin-bottom:16px; }
+    #blockOverlay { position:fixed; top:0; left:0; width:100%; height:100%; background:#071022; color:#e6eef8; display:none; align-items:center; justify-content:center; z-index:1000; text-align:center; padding:20px; }
+    #blockOverlay h2 { margin-bottom:16px; }
+    #blockOverlay p { margin-bottom:8px; }
+    #blockOverlay button { padding:10px 20px; background:#ff4444; color:#fff; border:none; border-radius:8px; cursor:pointer; margin-top:16px; }
+    @media (max-width:480px) { .blocked-container{margin:20px 16px;} }
+  </style>
+</head>
+<body>
+  <div class="bg-shapes" aria-hidden="true"></div>
+  <main class="page-container">
+    <div class="card blocked-container">
+      <h1>🚫 Blocked Apps & Websites</h1>
+      <div class="blocked-input">
+        <input id="newBlock" type="text" placeholder="Enter app or website to block">
+        <button id="addBlock">Add</button>
+      </div>
+      <ul class="blocked-list" id="blockList"></ul>
+      <button id="activateBlock" class="activate-btn">Activate Block Mode</button>
+      <p style="margin-top:30px"><a href="/dashboard" style="color:#7c5cff;text-decoration:underline">Back to Dashboard</a></p>
+    </div>
+  </main>
+
+  <!-- Block overlay -->
+  <div id="blockOverlay">
+    <div>
+      <h2>🚫 Focus Mode Active</h2>
+      <p>Blocked items:</p>
+      <ul id="overlayList" style="list-style:none; padding:0; margin-bottom:16px;"></ul>
+      <p id="blockTimer">00:00</p>
+      <button id="exitBlockBtn">Exit Block Mode</button>
+    </div>
+  </div>
+
+  <!-- Password modal for exit -->
+  <div id="pwdModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:1001;">
+    <div style="background:var(--card-bg); padding:24px; border-radius:12px; max-width:320px; width:90%; text-align:center;">
+      <h2>Enter password</h2>
+      <input type="password" id="blockPwd" placeholder="Password" style="width:100%; padding:10px; margin:12px 0; border-radius:8px; border:1px solid rgba(255,255,255,0.2);">
+      <button id="submitBlockPwd" class="btn primary">Submit</button>
+      <p id="blockPwdError" style="color:#ff6666; margin-top:8px;"></p>
+    </div>
+  </div>
+
+  <script>
+    const blockInput = document.getElementById('newBlock');
+    const addBtn = document.getElementById('addBlock');
+    const listEl = document.getElementById('blockList');
+    const activateBtn = document.getElementById('activateBlock');
+    const overlay = document.getElementById('blockOverlay');
+    const overlayList = document.getElementById('overlayList');
+    const blockTimerEl = document.getElementById('blockTimer');
+    const exitBlockBtn = document.getElementById('exitBlockBtn');
+    const pwdModal = document.getElementById('pwdModal');
+    const submitPwdBtn = document.getElementById('submitBlockPwd');
+    const pwdError = document.getElementById('blockPwdError');
+    const STORAGE_KEY = 'focusguard_blocks';
+
+    let blockTimer = null;
+    let blockMinutes = 0;
+    let blockSeconds = 0;
+
+    function loadBlocks() {
+      return fetch('/get_blocked').then(r=>r.json());
+    }
+
+    function saveBlocks(blocks) {
+      // not needed, server handles
+    }
+
+    async function renderBlocks() {
+      const blocks = await loadBlocks();
+      listEl.innerHTML = '';
+      overlayList.innerHTML = '';
+      blocks.forEach((b, idx) => {
+        const li = document.createElement('li');
+        li.textContent = b;
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Remove';
+        delBtn.addEventListener('click', async () => {
+          await fetch('/remove_block', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`item=${encodeURIComponent(b)}`});
+          renderBlocks();
+        });
+        li.appendChild(delBtn);
+        listEl.appendChild(li);
+
+        const oli = document.createElement('li');
+        oli.textContent = b;
+        overlayList.appendChild(oli);
+      });
+    }
+
+    addBtn.addEventListener('click', async () => {
+      const text = blockInput.value.trim();
+      if (!text) return;
+      const res = await fetch('/add_block', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`item=${encodeURIComponent(text)}`});
+      if (res.ok) {
+        blockInput.value = '';
+        renderBlocks();
+      }
+    });
+
+    blockInput.addEventListener('keyup', e => {
+      if (e.key === 'Enter') addBtn.click();
+    });
+
+    activateBtn.addEventListener('click', async () => {
+      const blocks = await loadBlocks();
+      if (blocks.length === 0) {
+        alert('Add some items to block first.');
+        return;
+      }
+      // Redirect to focus mode to select technique
+      window.location.href = '/focus?mode=block';
+    });
+
+    function startBlockTimer() {
+      blockTimer = setInterval(() => {
+        if (blockSeconds === 0) {
+          if (blockMinutes === 0) {
+            fetch('/stop_blocking', {method:'POST'});
+            clearInterval(blockTimer);
+            overlay.style.display = 'none';
+            alert('Block mode ended.');
+            return;
+          }
+          blockMinutes -= 1;
+          blockSeconds = 59;
+        } else {
+          blockSeconds -= 1;
+        }
+        let m = blockMinutes.toString().padStart(2,'0');
+        let s = blockSeconds.toString().padStart(2,'0');
+        blockTimerEl.textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    exitBlockBtn.addEventListener('click', () => {
+      pwdError.textContent = '';
+      pwdModal.style.display = 'flex';
+      document.getElementById('blockPwd').value = '';
+    });
+
+    submitPwdBtn.addEventListener('click', () => {
+      const pwd = document.getElementById('blockPwd').value;
+      fetch('/verify_password', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: `password=${encodeURIComponent(pwd)}`
+      }).then(r=>r.json()).then(data => {
+        if (data.success) {
+          fetch('/stop_blocking', {method:'POST'});
+          clearInterval(blockTimer);
+          overlay.style.display = 'none';
+          pwdModal.style.display = 'none';
+        } else {
+          pwdError.textContent = data.error || 'Invalid password';
+        }
+      }).catch(err => {
+        pwdError.textContent = 'Error';
+      });
+    });
+
+    pwdModal.addEventListener('click', e => {
+      if (e.target === pwdModal) pwdModal.style.display = 'none';
+    });
+
+    renderBlocks();
+  </script>
+</body>
+</html>
